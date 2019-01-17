@@ -1,57 +1,228 @@
-Stay up to date by following [@apilayernet](https://twitter.com/apilayernet) on Twitter.
+[Sign up](https://currencylayer.com/product) for your personal API Access Key.
 
-# currencylayer JSON API
+# Code Examples
 
-[Currencylayer](https://currencylayer.com) provides an easy-to-integrate REST API with real-time and historical exchange rates for 168 world currencies, by default relative to USD, delivered in lightweight and highly portable JSON format and compatible with any application.
+## Java 
 
-Exchange rate data is collected from several major forex data vendors in real-time, bid/ask prices are blended algorithmically, validated, and delivered hourly, every 10 minutes, or even within the 60-second market window.
+Making use of a variety of `Apache HTTP Components`, there is a fairly simple way to query the API using Java. Based on the following integration methods for the API's `live` and `convert` Endpoints, we will try to provide a general idea of how **currencylayer** JSON data can be accessed and implemented in your application.
 
-Providing the most representative forex market value available ("midpoint" value) for every API request, [the currencylayer API](https://currencylayer.com) powers currency converters, mobile apps and back-office systems all around the world.
+The entire Java demo source code folder, along with all necessary `components`, is available for download in the **java directory**.
 
-## Unique Approach
+### Accessing Real-time Exchange Rates:
 
-The online Forex API market is divided into two sections: Inexpensive, but unreliable open-source projects, and overpriced, but well-performing "Enterprise-class" APIs.
+Find below an example for how to access and display the latest exchange rate data using Java:
 
-**Currencylayer** aims to combine the strengths of both into one **superior product** - delivering accurate, reliable and consistent currency exchange rates through a closely monitored API and making it accessible to small-scale businesses and startups - and conveniently low-priced for larger companies.
+```java
+package org.json.poc;
 
-[Sign up for free](https://currencylayer.com/product) to get instant API Access.
+// necessary components are imported
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-## Features & Integration
+import org.apache.http.HttpEntity;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-All real-time and historical exchange rates are available at [https://currencylayer.com](https://currencylayer.com), along with 256-bit HTTPS encryption, `JSONP Callbacks`,
-`HTTP Access-Control` headers, `HTTP ETags`, and much more.
+public class LiveResponseDemo{
+        
+        // essential URL structure is built using constants 
+	public static final String ACCESS_KEY = "YOUR_ACCESS_KEY";
+	public static final String BASE_URL = "https://apilayer.net/api/";
+	public static final String ENDPOINT = "live";
 
-Long story short - the main API Functionalities are:
+	// this object is used for executing requests to the (REST) API
+	static CloseableHttpClient httpClient = HttpClients.createDefault();
+	
+	/**
+	 * 
+	 * Notes:<br><br>
+	 * 
+	 * A JSON response of the form {"key":"value"} is considered a simple Java JSONObject.<br>
+	 * To get a simple value from the JSONObject, use: <JSONObject identifier>.get<Type>("key");<br>
+	 * 
+	 * A JSON response of the form {"key":{"key":"value"}} is considered a complex Java JSONObject.<br>
+	 * To get a complex value like another JSONObject, use: <JSONObject identifier>.getJSONObject("key")
+	 * 
+	 * Values can also be JSONArray Objects. JSONArray objects are simple, consisting of multiple JSONObject Objects.
+	 * 
+	 * 
+	 */
+	
+	// sendLiveRequest() function is created to request and retrieve the data
+	public static void sendLiveRequest(){
+		
+		// The following line initializes the HttpGet Object with the URL in order to send a request
+		HttpGet get = new HttpGet(BASE_URL + ENDPOINT + "?access_key=" + ACCESS_KEY);
+		
+		try {
+			CloseableHttpResponse response =  httpClient.execute(get);
+			HttpEntity entity = response.getEntity();
+			
+			// the following line converts the JSON Response to an equivalent Java Object
+			JSONObject exchangeRates = new JSONObject(EntityUtils.toString(entity));
+			
+			System.out.println("Live Currency Exchange Rates");
+			
+			// Parsed JSON Objects are accessed according to the JSON resonse's hierarchy, output strings are built
+			Date timeStampDate = new Date((long)(exchangeRates.getLong("timestamp")*1000)); 
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss a");
+			String formattedDate = dateFormat.format(timeStampDate);
+			System.out.println("1 " + exchangeRates.getString("source") + " in GBP : " + exchangeRates.getJSONObject("quotes").getDouble("USDGBP") + " (Date: " + formattedDate + ")");
+			System.out.println("\n");
+			response.close();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
-* **Real-time Forex data**:
-Exchange rates for 168 world currencies and precious metals, with data updates ranging from every 60 minutes down to stunning 60 seconds 
+        // sendLiveRequest() function is executed
+	public static void main(String[] args) throws IOException{
+		sendLiveRequest();
+		httpClient.close();
+		new BufferedReader(new InputStreamReader(System.in)).readLine();
+	}
+}
+```
 
-* **Historical Rates**:
-Query the API for Historical exchange rates going back all the way to 1999
+The **Java Output** will look like this:
 
-* **Currency Conversion Endpoint**:
-Have the API convert one currency to another on your behalf, using real-time or even historical rates.
+```
+Live Currency Exchange Rates
+1 USD in GBP : 0.66046 (Date: 2015-05-02 21:26:15 PM)
+```
 
-* **Time-Frame Queries**:
-Request exchange rates between two specified dates, for timeframes of up to 365 days.
+### Performing a Currency Conversion:
 
-* **Currency-Change Queries**:
-Request change parameters (margin and percentage) for one or more currencies, optionally between two specified dates.
+Based on what we have seen in the previous example, converting one currency to another in Java is as simple as:
 
-* **Optional Parameters**:
-Request a specific selection of currencies in order to reduce server load, query the API for a different Base Currency, and pretty print your JSON response.
+```java
+package org.json.poc;
 
-[Sign up for the Free Plan](https://currencylayer.com/product) to get your API Access Key.
+// necessary components are imported
+import java.io.IOException;
 
-## In-depth Documentation
+import org.apache.http.HttpEntity;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-Find a shortened version of the API's Documentation, along with a full Java Demo Source, in this Repository's [docs folder](https://github.com/apilayer/currencylayer-API/tree/master/docs).
+public class ConvertResponseDemo{
+	public static final String ACCESS_KEY = "YOUR_ACCESS_KEY";
+	public static final String BASE_URL = "https://apilayer.net/api/";
+	public static final String ENDPOINT = "convert";
 
-Interactive example queries, a variety of code examples (including PHP/CURL, jQuery.ajax and Java), integration guides, useful downloads and much more is available at [currencylayer.com/documentation](https://currencylayer.com/documentation).
+	// this object is used for executing requests to the (REST) API
+	static CloseableHttpClient httpClient = HttpClients.createDefault();
+	
+	public static void sendConvertRequest(){
 
-## Customer Support
-Need any assistance? [Get in touch with Customer Support](mailto:support@apilayer.com?subject=[currencylayer]).
+		// the "from", "to" and "amount" can be set as variables
+		HttpGet get = new HttpGet(BASE_URL + ENDPOINT + "?access_key=" + ACCESS_KEY + "&from=GBP&to=INR&amount=2");
+		try {
+			CloseableHttpResponse response =  httpClient.execute(get);
+			HttpEntity entity = response.getEntity();
+			JSONObject jsonObject = new JSONObject(EntityUtils.toString(entity));
+			
+			System.out.println("Single-Currency Conversion");
 
-## Legal
+			// access the parsed JSON objects
+			System.out.println("From : " + jsonObject.getJSONObject("query").getString("from"));
+			System.out.println("To : " + jsonObject.getJSONObject("query").getString("to"));
+			System.out.println("Amount : " + jsonObject.getJSONObject("query").getLong("amount"));
+			System.out.println("Conversion Result : " + jsonObject.getDouble("result"));
+			System.out.println("\n");
+			response.close();
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	
+	}
 
-All usage of the currencylayer website, API, and services is subject to the [currencylayer Terms & Conditions](https://currencylayer.com/terms) and all annexed legal documents and agreements.
+	public static void main(String[] args) throws IOException{
+		sendConvertRequest();
+		httpClient.close();
+	}
+}
+```
+
+The **Java Output** will look like this:
+
+```
+Single-Currency Conversion
+From : GBP
+To : INR
+Amount : 2
+Conversion Result : 192.761348
+```
+
+
+
+
+### Troubleshooting
+
+#### Import of `components` failed
+
+If there are errors importing the `components` (contained in the **lib** directory), the paths are most likely broken. To fix this, find the `.classpath` file and add the following code just before the `</classpath>` closing tags:
+
+```xml
+<classpathentry kind="lib" path="lib/httpclient-4.4.1.jar"/> 
+<classpathentry kind="lib" path="lib/httpcore-4.4.1.jar"/> 
+<classpathentry kind="lib" path="lib/commons-logging-1.2.jar"/> 
+<classpathentry kind="lib" path="lib/json.jar"/>
+```
+
+#### SSL Error in in JavaSe-1.7 
+
+If you are using in `JavaSe-1.7`, the fact that SSL is disabled by default may cause some unexpected errors. To fix this, find your .java file's `VM Arguments` section and add the following code:
+
+```
+-Djsse.enableSNIExtension=false
+```
+
+Access `VM Arguments` section in **Eclipse**:
+
+1. Right-click on the .java file
+2. Click Run As
+3. Click Run Configurations
+4. Click Arguments 
+5. Add the above code to VM Arguments
+6. then click Run
+
+
